@@ -8,8 +8,7 @@ Purpose : Basic Banking Record System Program
 #include <fstream>
 #include <cstdlib>
 
-class account_query
-{
+class account_query{
     private:
         char accountNumber[20];
         char firstName[10];
@@ -18,7 +17,7 @@ class account_query
 
     public:
         void showData();
-        void rwriteData();
+        void writeData();
         void writeRecord();
         void readRecord();
         void searchRecord();
@@ -28,7 +27,7 @@ class account_query
 };
 
 void account_query::showData(){
-    std::cout << "Account Number: " << AccountNumber << std::endl;
+    std::cout << "Account Number: " << accountNumber << std::endl;
     std::cout << "First Name: " << firstName << std::endl;
     std::cout << "Last Name: " << lastName << std::endl;
     std::cout << "Current Balance: " << totalBalance << std::endl;
@@ -42,9 +41,104 @@ void account_query::writeData(){
     std::cin >> firstName;
     std::cout << "\nEnter Last Name: ";
     std::cin >> lastName;
-    std::cout << "Enter Balance: ";
+    std::cout << "\nEnter Balance: ";
     std::cin >> totalBalance;
     std::cout << std::endl;
+}
+
+void account_query::writeRecord(){
+    std::ofstream outfile;
+    outfile.open("record.bank", std::ios::binary|std::ios::app);
+    writeData();
+    outfile.write(reinterpret_cast<char *>(this), sizeof(*this));
+    outfile.close();
+}
+
+void account_query::readRecord(){
+    std::ifstream infile;
+    infile.open("record.bank", std::ios::binary);
+    if(!infile){
+        std::cout << "Error with opening file! File not found!" << std::endl;
+        return;
+    }
+
+    std::cout << "\n***Data from file***" << std::endl;
+    while (!infile.eof()){
+        if(infile.read(reinterpret_cast<char*>(this), sizeof(*this))){
+            showData();
+        }
+    }
+    infile.close();
+}
+
+void account_query::searchRecord(){
+    int n;
+    std::ifstream infile;
+    infile.open("record.bank", std::ios::binary);
+    if(!infile){
+        std::cout << "\nError with opening file! File not found!" << std::endl;
+        return;
+    }
+    infile.seekg(0,std::ios::end);
+    int count = infile.tellg()/sizeof(*this);
+    std::cout << "\nThere are " << count << " records in the file.";
+    std::cout << "\nEnter record number to search for: ";
+    std::cin >> n;
+    infile.seekg((n-1)*sizeof(*this));
+    infile.read(reinterpret_cast<char*>(this), sizeof(*this));
+    showData();
+}
+
+void account_query::editRecord(){
+    int n;
+    std::fstream iofile;
+    iofile.open("record.bank", std::ios::in|std::ios::binary);
+    if(!iofile){
+        std::cout << "\nError with opening file! File not found!" << std::endl;
+        return;
+    }
+    iofile.seekg(0,std::ios::end);
+    int count = iofile.tellg()/sizeof(*this);
+    std::cout << "\nThere are " << count << " records in the file.";
+    std::cout << "\nEnter record number to edit: ";
+    std::cin >> n;
+    iofile.seekg((n-1)*sizeof(*this));
+    iofile.read(reinterpret_cast<char*>(this), sizeof(*this));
+    showData();
+    iofile.close();
+    iofile.open("record.bank", std::ios::out|std::ios::in|std::ios::binary);
+    iofile.seekp((n-1)*sizeof(*this));
+    std::cout << "\nEnter data to modify: " << std::endl;
+    writeData();
+    iofile.write(reinterpret_cast<char*>(this), sizeof(*this));
+}
+
+void account_query::deleteRecord(){
+    int n;
+    std::ifstream infile;
+    infile.open("record.bank", std::ios::binary);
+    if(!infile){
+        std::cout << "\nError with opening file! File not found!" << std::endl;
+        return;
+    }
+    infile.seekg(0,std::ios::end);
+    int count = infile.tellg()/sizeof(*this);
+    std::cout << "\nThere are " << count << " records in the file. ";
+    std::cout << "\nEnter the record number to delete: ";
+    std::cin >> n;
+    std::fstream tmpfile;
+    tmpfile.open("tmpfile.bank", std::ios::out|std::ios::binary);
+    infile.seekg(0);
+    for(int i = 0; i < count; i++){
+        infile.read(reinterpret_cast<char*>(this), sizeof(*this));
+        if (i == (n-1))
+            continue;
+        tmpfile.write(reinterpret_cast<char*>(this), sizeof(*this));
+    }
+    infile.close();
+    tmpfile.close();
+    remove("record.bank");
+    rename("tmpfile.bank", "record.bank");
 }
 
 int main(){
